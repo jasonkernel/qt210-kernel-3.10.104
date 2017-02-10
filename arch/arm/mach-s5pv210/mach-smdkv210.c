@@ -15,6 +15,7 @@
 #include <linux/serial_core.h>
 #include <linux/device.h>
 #include <linux/dm9000.h>
+#include <linux/smsc911x.h>
 #include <linux/fb.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
@@ -119,12 +120,14 @@ static struct samsung_keypad_platdata smdkv210_keypad_data __initdata = {
 	.cols		= 8,
 };
 
+#ifdef CONFIG_DM9000
 static struct resource smdkv210_dm9000_resources[] = {
 	[0] = DEFINE_RES_MEM(S5PV210_PA_SROM_BANK5, 1),
 	[1] = DEFINE_RES_MEM(S5PV210_PA_SROM_BANK5 + 2, 1),
 	[2] = DEFINE_RES_NAMED(IRQ_EINT(9), 1, NULL, IORESOURCE_IRQ \
 				| IORESOURCE_IRQ_HIGHLEVEL),
 };
+
 
 static struct dm9000_plat_data smdkv210_dm9000_platdata = {
 	.flags		= DM9000_PLATF_16BITONLY | DM9000_PLATF_NO_EEPROM,
@@ -140,6 +143,41 @@ static struct platform_device smdkv210_dm9000 = {
 		.platform_data	= &smdkv210_dm9000_platdata,
 	},
 };
+#endif
+
+#ifdef CONFIG_SMSC911X
+static struct resource smdkv210_smsc911x_resources[] = {
+	[0] = {
+		.start = S5PV210_PA_SMSC9220,
+		.end   = S5PV210_PA_SMSC9220 + 0xFC,
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = IRQ_EINT(9),
+		.end   = IRQ_EINT(9),
+		.flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWLEVEL | IRQF_TRIGGER_LOW,
+	},
+};
+
+static struct smsc911x_platform_config smdkv210_smsc911x_config = {
+        .phy_interface  = PHY_INTERFACE_MODE_MII,
+        .irq_polarity   = SMSC911X_IRQ_POLARITY_ACTIVE_LOW,
+        .irq_type       = SMSC911X_IRQ_TYPE_PUSH_PULL,
+        .flags          = SMSC911X_USE_16BIT ,
+/* you can edit the mac address below instead of the random one   */
+/*      .mac            = { 0x00, 0x09, 0xc0, 0xff, 0xec, 0x48 }, */
+        };
+
+static struct platform_device s5pv210_device_smsc911x = {
+	.name           = "smsc911x",
+	.id             = -1,
+	.num_resources  = ARRAY_SIZE(smdkv210_smsc911x_resources),
+	.resource       = smdkv210_smsc911x_resources,
+	.dev            = {
+		.platform_data  =  &smdkv210_smsc911x_config,
+	},
+};
+#endif
 
 static void smdkv210_lte480wv_set_power(struct plat_lcd_data *pd,
 					unsigned int power)
@@ -235,7 +273,12 @@ static struct platform_device *smdkv210_devices[] __initdata = {
 	&s5pv210_device_spdif,
 	&samsung_asoc_idma,
 	&samsung_device_keypad,
+#ifdef CONFIG_DM9000
 	&smdkv210_dm9000,
+#endif
+#ifdef CONFIG_SMSC911X
+	&s5pv210_device_smsc911x,
+#endif
 	&smdkv210_lcd_lte480wv,
 };
 
@@ -297,7 +340,9 @@ static void __init smdkv210_machine_init(void)
 {
 	s3c_pm_init();
 
+#ifdef CONFIG_DM9000
 	smdkv210_dm9000_init();
+#endif
 
 	samsung_keypad_set_platdata(&smdkv210_keypad_data);
 	s3c24xx_ts_set_platdata(NULL);
