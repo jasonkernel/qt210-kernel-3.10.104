@@ -33,6 +33,7 @@ obj-$(CONFIG_S3C_ADC)	+= adc.o
 
 obj-y				+= platformdata.o
 
+obj-y                           +=bootmem.o
 obj-y				+= devs.o
 obj-y				+= dev-uart.o
 obj-$(CONFIG_S5P_DEV_MFC)	+= s5p-dev-mfc.o
@@ -59,3 +60,5 @@ obj-$(CONFIG_SAMSUNG_WAKEMASK)	+= wakeup-mask.o
 
 obj-$(CONFIG_S5P_PM)		+= s5p-pm.o s5p-irq-pm.o
 obj-$(CONFIG_S5P_SLEEP)		+= s5p-sleep.o
+obj-$(CONFIG_S5P_DEV_MFC)       += dev-mfc.o
+obj-$(CONFIG_S5P_SETUP_MFC)     += setup-mfc.o

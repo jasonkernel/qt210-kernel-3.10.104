@@ -46,6 +46,19 @@ extern struct platform_device s3c64xx_device_spi2;
 extern struct platform_device s3c_device_adc;
 extern struct platform_device s3c_device_cfcon;
 extern struct platform_device s3c_device_fb;
+
+extern struct platform_device s3c_device_fimc0;
+extern struct platform_device s3c_device_fimc1;
+extern struct platform_device s3c_device_fimc2;
+extern struct platform_device s3c_device_ipc;
+extern struct platform_device s3c_device_mfc;
+extern struct platform_device s3c_device_jpeg;
+extern struct platform_device s3c_device_g2d;
+extern struct platform_device s3c_device_g3d;
+
+extern struct platform_device s3c_device_ohci;
+extern struct platform_device s3c_device_lcd;
+extern struct platform_device s3c_device_wdt;
 extern struct platform_device s3c_device_hwmon;
 extern struct platform_device s3c_device_hsmmc0;
 extern struct platform_device s3c_device_hsmmc1;
@@ -74,6 +87,10 @@ extern struct platform_device s3c_device_usbgadget;
 extern struct platform_device s3c_device_usb_hsotg;
 extern struct platform_device s3c_device_usb_hsudc;
 extern struct platform_device s3c_device_wdt;
+
+extern struct platform_device s5p_device_rotator;
+extern struct platform_device s5p_device_tvout;
+extern struct platform_device s5p_device_g3d;
 
 extern struct platform_device s5p_device_ehci;
 extern struct platform_device s5p_device_fimc0;
@@ -120,6 +137,11 @@ extern struct platform_device s5pv210_device_pcm0;
 extern struct platform_device s5pv210_device_pcm1;
 extern struct platform_device s5pv210_device_pcm2;
 extern struct platform_device s5pv210_device_spdif;
+
+extern struct platform_device s5p_device_fimc0;
+extern struct platform_device s5p_device_fimc1;
+extern struct platform_device s5p_device_fimc2;
+extern struct platform_device s5p_device_fimc3;
 
 extern struct platform_device exynos4_device_ac97;
 extern struct platform_device exynos4_device_ahci;

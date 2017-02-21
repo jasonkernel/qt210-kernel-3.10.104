@@ -66,6 +66,10 @@
 #include <plat/regs-serial.h>
 #include <plat/regs-spi.h>
 #include <linux/platform_data/spi-s3c64xx.h>
+#include <../../../drivers/video/samsung/s3cfb.h>
+#include <plat/media.h>
+#include <mach/media.h>
+#include <plat/jpeg.h>
 
 static u64 samsung_device_dma_mask = DMA_BIT_MASK(32);
 
@@ -181,12 +185,82 @@ struct platform_device s3c_device_fb = {
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	},
 };
-
+#if 0
 void __init s3c_fb_set_platdata(struct s3c_fb_platdata *pd)
 {
 	s3c_set_platdata(pd, sizeof(struct s3c_fb_platdata),
 			 &s3c_device_fb);
 }
+#endif
+static struct s3c_platform_fb default_fb_data __initdata = { 
+#if defined(CONFIG_CPU_S5PV210_EVT0)
+        .hw_ver = 0x60,
+#else
+        .hw_ver = 0x62,
+#endif
+        .nr_wins = 5,
+        .default_win = CONFIG_FB_S3C_DEFAULT_WINDOW,
+        .swap = FB_SWAP_WORD | FB_SWAP_HWORD,
+};
+void __init s3c_fb_set_platdata(struct s3c_platform_fb *pd)
+{
+        struct s3c_platform_fb *npd;
+        struct s3cfb_lcd *lcd;
+        phys_addr_t pmem_start;
+        int i, default_win, num_overlay_win;
+        int frame_size;
+        if (!pd)
+                pd = &default_fb_data;
+
+        npd = kmemdup(pd, sizeof(struct s3c_platform_fb), GFP_KERNEL);
+        if (!npd)
+                printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+        else {
+                for (i = 0; i < npd->nr_wins; i++)
+                        npd->nr_buffers[i] = 1;
+
+                default_win = npd->default_win;
+                num_overlay_win = CONFIG_FB_S3C_NUM_OVLY_WIN;
+
+                if (num_overlay_win >= default_win) {
+                        printk(KERN_WARNING "%s: NUM_OVLY_WIN should be less than default \
+                                        window number. set to 0.\n", __func__);
+                        num_overlay_win = 0;
+                }
+                for (i = 0; i < num_overlay_win; i++)
+                        npd->nr_buffers[i] = CONFIG_FB_S3C_NUM_BUF_OVLY_WIN;
+                npd->nr_buffers[default_win] = CONFIG_FB_S3C_NR_BUFFERS;
+
+                lcd = (struct s3cfb_lcd *)npd->lcd;
+                frame_size = (lcd->width * lcd->height * 4); 
+
+                s3cfb_get_clk_name(npd->clk_name);
+                npd->backlight_onoff = NULL;
+                npd->clk_on = s3cfb_clk_on;
+                npd->clk_off = s3cfb_clk_off;
+
+                /* set starting physical address & size of memory region for overlay
+ *                  * window */
+		
+                printk("pmem_start is 0x%x\n",pmem_start);
+                pmem_start = s5p_get_media_memory_bank(S5P_MDEV_FIMD, 1); 
+                printk("---pmem_start is 0x%x\n",pmem_start);
+                for (i = 0; i < num_overlay_win; i++) {
+                      npd->pmem_start[i] = pmem_start;
+                        npd->pmem_size[i] = frame_size * npd->nr_buffers[i];
+                        pmem_start +=npd->pmem_size[i];
+                }
+
+                /*set starting physical address & size of memory region for default
+ *                 * window */
+
+                npd->pmem_start[default_win] = pmem_start;
+                npd->pmem_size[default_win] = frame_size * npd->nr_buffers[default_win];
+
+                s3c_device_fb.dev.platform_data = npd;
+        }
+}
+
 #endif /* CONFIG_S3C_DEV_FB */
 
 /* FIMC */
@@ -268,6 +342,191 @@ struct platform_device s5p_device_fimc3 = {
 };
 #endif /* CONFIG_S5P_DEV_FIMC3 */
 
+#if defined(CONFIG_VIDEO_FIMC) || defined(CONFIG_CPU_FREQ) /* TODO: use existing dev */
+static struct resource s3c_fimc0_resource[] = {
+        [0] = {
+                .start  = S5P_PA_FIMC0,
+                .end    = S5P_PA_FIMC0 + S5P_SZ_FIMC0 - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start  = IRQ_FIMC0,
+                .end    = IRQ_FIMC0,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+#if 0
+struct platform_device s3c_device_fimc0 = {
+        .name           = "s3c-fimc",
+        .id             = 0,
+        .num_resources  = ARRAY_SIZE(s3c_fimc0_resource),
+        .resource       = s3c_fimc0_resource,
+};
+
+static struct s3c_platform_fimc default_fimc0_data __initdata = {
+        .default_cam    = CAMERA_PAR_A,
+        .hw_ver = 0x45,
+};
+
+void __init s3c_fimc0_set_platdata(struct s3c_platform_fimc *pd)
+{
+        struct s3c_platform_fimc *npd;
+
+        if (!pd)
+                pd = &default_fimc0_data;
+
+        npd = kmemdup(pd, sizeof(struct s3c_platform_fimc), GFP_KERNEL);
+        if (!npd)
+                printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+        else {
+                if (!npd->cfg_gpio)
+                        npd->cfg_gpio = s3c_fimc0_cfg_gpio;
+
+                if (!npd->clk_on)
+                        npd->clk_on = s3c_fimc_clk_on;
+
+                if (!npd->clk_off)
+                        npd->clk_off = s3c_fimc_clk_off;
+
+                npd->hw_ver = 0x45;
+
+                /* starting physical address of memory region */
+                npd->pmem_start = s5p_get_media_memory_bank(S5P_MDEV_FIMC0, 1);
+                /* size of memory region */
+                npd->pmem_size = s5p_get_media_memsize_bank(S5P_MDEV_FIMC0, 1);
+
+                s3c_device_fimc0.dev.platform_data = npd;
+        }
+}
+
+static struct resource s3c_fimc1_resource[] = {
+        [0] = {
+                .start  = S5P_PA_FIMC1,
+                .end    = S5P_PA_FIMC1 + S5P_SZ_FIMC1 - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start  = IRQ_FIMC1,
+                .end    = IRQ_FIMC1,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+struct platform_device s3c_device_fimc1 = {
+        .name           = "s3c-fimc",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(s3c_fimc1_resource),
+        .resource       = s3c_fimc1_resource,
+};
+
+static struct s3c_platform_fimc default_fimc1_data __initdata = {
+        .default_cam    = CAMERA_PAR_A,
+        .hw_ver = 0x50,
+};
+
+void __init s3c_fimc1_set_platdata(struct s3c_platform_fimc *pd)
+{
+        struct s3c_platform_fimc *npd;
+
+        if (!pd)
+                pd = &default_fimc1_data;
+
+        npd = kmemdup(pd, sizeof(struct s3c_platform_fimc), GFP_KERNEL);
+        if (!npd)
+                printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+        else {
+                if (!npd->cfg_gpio)
+                        npd->cfg_gpio = s3c_fimc1_cfg_gpio;
+
+                if (!npd->clk_on)
+                        npd->clk_on = s3c_fimc_clk_on;
+
+                if (!npd->clk_off)
+                        npd->clk_off = s3c_fimc_clk_off;
+
+                npd->hw_ver = 0x50;
+
+                /* starting physical address of memory region */
+                npd->pmem_start = s5p_get_media_memory_bank(S5P_MDEV_FIMC1, 1);
+                /* size of memory region */
+                npd->pmem_size = s5p_get_media_memsize_bank(S5P_MDEV_FIMC1, 1);
+
+                s3c_device_fimc1.dev.platform_data = npd;
+        }
+}
+
+static struct resource s3c_fimc2_resource[] = {
+        [0] = {
+                .start  = S5P_PA_FIMC2,
+                .end    = S5P_PA_FIMC2 + S5P_SZ_FIMC2 - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start  = IRQ_FIMC2,
+                .end    = IRQ_FIMC2,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+struct platform_device s3c_device_fimc2 = {
+        .name           = "s3c-fimc",
+        .id             = 2,
+        .num_resources  = ARRAY_SIZE(s3c_fimc2_resource),
+        .resource       = s3c_fimc2_resource,
+};
+
+static struct s3c_platform_fimc default_fimc2_data __initdata = {
+        .default_cam    = CAMERA_PAR_A,
+        .hw_ver = 0x45,
+};
+
+void __init s3c_fimc2_set_platdata(struct s3c_platform_fimc *pd)
+{
+        struct s3c_platform_fimc *npd;
+
+        if (!pd)
+                pd = &default_fimc2_data;
+
+        npd = kmemdup(pd, sizeof(struct s3c_platform_fimc), GFP_KERNEL);
+        if (!npd)
+                printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+        else {
+                if (!npd->cfg_gpio)
+                        npd->cfg_gpio = s3c_fimc2_cfg_gpio;
+
+                if (!npd->clk_on)
+                        npd->clk_on = s3c_fimc_clk_on;
+
+                if (!npd->clk_off)
+                        npd->clk_off = s3c_fimc_clk_off;
+
+                npd->hw_ver = 0x45;
+                /* starting physical address of memory region */
+                npd->pmem_start = s5p_get_media_memory_bank(S5P_MDEV_FIMC2, 1);
+                /* size of memory region */
+                npd->pmem_size = s5p_get_media_memsize_bank(S5P_MDEV_FIMC2, 1);
+
+                s3c_device_fimc2.dev.platform_data = npd;
+        }
+}
+
+static struct resource s3c_ipc_resource[] = {
+        [0] = {
+                .start  = S5P_PA_IPC,
+                .end    = S5P_PA_IPC + S5P_SZ_IPC - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+};
+
+struct platform_device s3c_device_ipc = {
+        .name           = "s3c-ipc",
+        .id             = -1,
+        .num_resources  = ARRAY_SIZE(s3c_ipc_resource),
+        .resource       = s3c_ipc_resource,
+};
+#endif
+#endif
+
 /* G2D */
 
 #ifdef CONFIG_S5P_DEV_G2D
@@ -305,6 +564,157 @@ struct platform_device s5p_device_jpeg = {
 	},
 };
 #endif /*  CONFIG_S5P_DEV_JPEG */
+/* JPEG controller  */
+static struct s3c_platform_jpeg default_jpeg_data __initdata = {
+        .max_main_width         = 2560,
+        .max_main_height        = 1920,
+        .max_thumb_width        = 0,
+        .max_thumb_height       = 0,
+};
+
+void __init s3c_jpeg_set_platdata(struct s3c_platform_jpeg *pd)
+{
+        struct s3c_platform_jpeg *npd;
+
+        if (!pd)
+                pd = &default_jpeg_data;
+
+        npd = kmemdup(pd, sizeof(struct s3c_platform_jpeg), GFP_KERNEL);
+        if (!npd)
+                printk(KERN_ERR "%s: no memory for platform data\n", __func__);
+        else
+                s3c_device_jpeg.dev.platform_data = npd;
+}
+
+static struct resource s3c_jpeg_resource[] = {
+        [0] = {
+                .start = S5PV210_PA_JPEG,
+                .end   = S5PV210_PA_JPEG + S5PV210_SZ_JPEG - 1,
+                .flags = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start = IRQ_JPEG,
+                .end   = IRQ_JPEG,
+                .flags = IORESOURCE_IRQ,
+        }
+};
+
+struct platform_device s3c_device_jpeg = {
+        .name             = "s3c-jpg",
+        .id               = -1,
+        .num_resources    = ARRAY_SIZE(s3c_jpeg_resource),
+        .resource         = s3c_jpeg_resource,
+};
+
+/* G3D */
+struct platform_device s3c_device_g3d = {
+        .name           = "pvrsrvkm",
+        .id             = -1,
+};
+
+struct platform_device s3c_device_lcd = {
+        .name           = "s3c_lcd",
+        .id             = -1,
+};
+
+/* rotator interface */
+static struct resource s5p_rotator_resource[] = {
+        [0] = {
+                .start = S5P_PA_ROTATOR,
+                .end   = S5P_PA_ROTATOR + S5P_SZ_ROTATOR - 1,
+                .flags = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start = IRQ_ROTATOR,
+                .end   = IRQ_ROTATOR,
+                .flags = IORESOURCE_IRQ,
+        }
+};
+
+struct platform_device s5p_device_rotator = {
+        .name           = "s5p-rotator",
+        .id             = -1,
+        .num_resources  = ARRAY_SIZE(s5p_rotator_resource),
+        .resource       = s5p_rotator_resource
+};
+/* TVOUT interface */
+static struct resource s5p_tvout_resources[] = {
+        [0] = {
+                .start  = S5P_PA_TVENC,
+                .end    = S5P_PA_TVENC + S5P_SZ_TVENC - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start  = S5P_PA_VP,
+                .end    = S5P_PA_VP + S5P_SZ_VP - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [2] = {
+                .start  = S5P_PA_MIXER,
+                .end    = S5P_PA_MIXER + S5P_SZ_MIXER - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [3] = {
+                .start  = S5P_PA_HDMI,
+                .end    = S5P_PA_HDMI + S5P_SZ_HDMI - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [4] = {
+                .start  = S5P_I2C_HDMI_PHY,
+                .end    = S5P_I2C_HDMI_PHY + S5P_I2C_HDMI_SZ_PHY - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [5] = {
+                .start  = IRQ_MIXER,
+                .end    = IRQ_MIXER,
+                .flags  = IORESOURCE_IRQ,
+        },
+        [6] = {
+                .start  = IRQ_HDMI,
+                .end    = IRQ_HDMI,
+                .flags  = IORESOURCE_IRQ,
+        },
+        [7] = {
+                .start  = IRQ_TVENC,
+                .end    = IRQ_TVENC,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+struct platform_device s5p_device_tvout = {
+        .name           = "s5p-tvout",
+        .id             = -1,
+        .num_resources  = ARRAY_SIZE(s5p_tvout_resources),
+        .resource       = s5p_tvout_resources,
+};
+
+/* CEC */
+static struct resource s5p_cec_resources[] = {
+        [0] = {
+                .start  = S5P_PA_CEC,
+                .end    = S5P_PA_CEC + S5P_SZ_CEC - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start  = IRQ_CEC,
+                .end    = IRQ_CEC,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+struct platform_device s5p_device_cec = {
+        .name           = "s5p-cec",
+        .id             = -1,
+        .num_resources  = ARRAY_SIZE(s5p_cec_resources),
+        .resource       = s5p_cec_resources,
+};
+
+/* HPD */
+struct platform_device s5p_device_hpd = {
+        .name           = "s5p-hpd",
+        .id             = -1,
+};
+
 
 /* FIMD0 */
 
@@ -1602,3 +2012,24 @@ void __init s3c64xx_spi2_set_platdata(int (*cfg_gpio)(void), int src_clk_nr,
 	s3c_set_platdata(&pd, sizeof(pd), &s3c64xx_device_spi2);
 }
 #endif /* CONFIG_S3C64XX_DEV_SPI2 */
+
+static struct resource s3c_g2d_resources[] = { 
+        [0] = { 
+                .start  = S5P_PA_FIMG2D,
+                .end    = S5P_PA_FIMG2D + S5P_SZ_FIMG2D - 1,
+                .flags  = IORESOURCE_MEM,
+        },
+        [1] = { 
+                .start  = IRQ_2D,
+                .end    = IRQ_2D,
+                .flags  = IORESOURCE_IRQ,
+        }
+};
+
+struct platform_device s3c_device_g2d = { 
+        .name           = "s3c-g2d",
+        .id             = -1, 
+        .num_resources  = ARRAY_SIZE(s3c_g2d_resources),
+        .resource       = s3c_g2d_resources,
+};
+

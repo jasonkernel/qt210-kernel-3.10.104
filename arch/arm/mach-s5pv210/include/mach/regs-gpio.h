@@ -38,4 +38,28 @@
 #define EINT_GPIO_2(x)		S5PV210_GPH2(x)
 #define EINT_GPIO_3(x)		S5PV210_GPH3(x)
 
+#define S5PV210_GPA0_BASE               (S5P_VA_GPIO + 0x000)
+#define S5PV210_GPA1_BASE               (S5P_VA_GPIO + 0x020)
+#define S5PV210_GPB_BASE                (S5P_VA_GPIO + 0x040)
+#define S5PV210_GPC0_BASE               (S5P_VA_GPIO + 0x060)
+#define S5PV210_GPC1_BASE               (S5P_VA_GPIO + 0x080)
+#define S5PV210_GPD0_BASE               (S5P_VA_GPIO + 0x0A0)
+#define S5PV210_GPD1_BASE               (S5P_VA_GPIO + 0x0C0)
+#define S5PV210_GPE0_BASE               (S5P_VA_GPIO + 0x0E0)
+#define S5PV210_GPE1_BASE               (S5P_VA_GPIO + 0x100)
+#define S5PV210_GPF0_BASE               (S5P_VA_GPIO + 0x120)
+#define S5PV210_GPF1_BASE               (S5P_VA_GPIO + 0x140)
+#define S5PV210_GPF2_BASE               (S5P_VA_GPIO + 0x160)
+#define S5PV210_GPF3_BASE               (S5P_VA_GPIO + 0x180)
+#define S5PV210_GPG0_BASE               (S5P_VA_GPIO + 0x1A0)
+#define S5PV210_GPG1_BASE               (S5P_VA_GPIO + 0x1C0)
+#define S5PV210_GPG2_BASE               (S5P_VA_GPIO + 0x1E0)
+#define S5PV210_GPG3_BASE               (S5P_VA_GPIO + 0x200)
+#define S5PV210_GPH0_BASE               (S5P_VA_GPIO + 0xC00)
+#define S5PV210_GPH1_BASE               (S5P_VA_GPIO + 0xC20)
+#define S5PV210_GPH2_BASE               (S5P_VA_GPIO + 0xC40)
+#define S5PV210_GPH3_BASE               (S5P_VA_GPIO + 0xC60)
+#define S5PV210_GPI_BASE                (S5P_VA_GPIO + 0x220)
+
+
 #endif /* __ASM_ARCH_REGS_GPIO_H */

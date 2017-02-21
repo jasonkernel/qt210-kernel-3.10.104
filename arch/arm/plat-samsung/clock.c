@@ -86,6 +86,7 @@ int clk_enable(struct clk *clk)
 {
 	unsigned long flags;
 
+
 	if (IS_ERR(clk) || clk == NULL)
 		return -EINVAL;
 

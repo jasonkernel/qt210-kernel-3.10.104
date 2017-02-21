@@ -188,7 +188,7 @@ void __init s5pv210_map_io(void)
 	s3c_i2c1_setname("s3c2440-i2c");
 	s3c_i2c2_setname("s3c2440-i2c");
 
-	s3c_fb_setname("s5pv210-fb");
+	//s3c_fb_setname("s5pv210-fb");
 
 	/* Use s5pv210-keypad instead of samsung-keypad */
 	samsung_keypad_setname("s5pv210-keypad");

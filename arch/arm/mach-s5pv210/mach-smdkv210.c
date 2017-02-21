@@ -52,6 +52,14 @@
 
 #include "common.h"
 
+#include <../../../drivers/video/samsung/s3cfb.h>
+#include <mach/regs-gpio.h>
+#include <plat/media.h>
+#include <mach/media.h>
+#include <mach/power-domain.h>
+
+#define S5PV210_LCD_WIDTH  800
+#define S5PV210_LCD_HEIGHT 480
 /* Following are default values for UCON, ULCON and UFCON UART registers */
 #define SMDKV210_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
 				 S3C2410_UCON_RXILEVEL |	\
@@ -65,6 +73,26 @@
 #define SMDKV210_UFCON_DEFAULT	(S3C2410_UFCON_FIFOMODE |	\
 				 S5PV210_UFCON_TXTRIG4 |	\
 				 S5PV210_UFCON_RXTRIG4)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (6144 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (9900 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (6144 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (36864 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (36864 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD (S5PV210_LCD_WIDTH * \
+                                             S5PV210_LCD_HEIGHT * 4 * \
+                                             (CONFIG_FB_S3C_NR_BUFFERS + \
+                                                 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
+                                                  CONFIG_FB_S3C_NUM_BUF_OVLY_WIN))) //sayanta macro values need to be set
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (8192 * SZ_1K)
+
+/* 1920 * 1080 * 4 (RGBA)
+ * - framesize == 1080p : 1920 * 1080 * 2(16bpp) * 2(double buffer) = 8MB
+ * - framesize <  1080p : 1080 *  720 * 4(32bpp) * 2(double buffer) = under 8MB
+ **/
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_G2D (8192 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_TEXSTREAM (3000 * SZ_1K)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_GPU1 (3300 * SZ_1K)
+
 
 static struct s3c2410_uartcfg smdkv210_uartcfgs[] __initdata = {
 	[0] = {
@@ -179,9 +207,84 @@ static struct platform_device s5pv210_device_smsc911x = {
 };
 #endif
 
+static struct s5p_media_device s5pv210_media_devs[] = {
+        [0] = {
+                .id = S5P_MDEV_MFC,
+                .name = "mfc",
+                .bank = 0,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0,
+                .paddr = 0,
+        },
+        [1] = {
+                .id = S5P_MDEV_MFC,
+                .name = "mfc",
+                .bank = 1,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1,
+                .paddr = 0,
+        },
+        [2] = {
+                .id = S5P_MDEV_FIMC0,
+                .name = "fimc0",
+                .bank = 1,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0,
+                .paddr = 0,
+        },
+        [3] = {
+                .id = S5P_MDEV_FIMC1,
+                .name = "fimc1",
+                .bank = 1,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1,
+                .paddr = 0,
+        },
+        [4] = {
+                .id = S5P_MDEV_FIMC2,
+                .name = "fimc2",
+                .bank = 1,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2,
+                .paddr = 0,
+        },
+        [5] = {
+                .id = S5P_MDEV_JPEG,
+                .name = "jpeg",
+                .bank = 0,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG,
+                .paddr = 0,
+        },
+        [6] = {
+                .id = S5P_MDEV_FIMD,
+                .name = "fimd",
+                .bank = 1,
+                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMD,
+                .paddr = 0,
+        },
+        [7] = {
+                .id = S5P_MDEV_TEXSTREAM,
+                                .name = "texstream",
+                                .bank = 1,
+                                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_TEXSTREAM,
+                                .paddr = 0,
+         },
+         [8] = {
+                                .id = S5P_MDEV_PMEM_GPU1,
+                                .name = "pmem_gpu1",
+                                .bank = 0, /* OneDRAM */
+                                .memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_GPU1,
+                                .paddr = 0,
+         },
+         [9] = {
+                                .id = S5P_MDEV_G2D,
+                                .name = "g2d",
+                                .bank = 0,
+                                .memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_G2D,
+                                .paddr = 0,
+         },
+};
+
 static void smdkv210_lte480wv_set_power(struct plat_lcd_data *pd,
 					unsigned int power)
 {
+
+	printk("smdkv210_lte480wv_set_power was called ..............\n");
 	if (power) {
 #if !defined(CONFIG_BACKLIGHT_PWM)
 		gpio_request_one(S5PV210_GPD0(3), GPIOF_OUT_INIT_HIGH, "GPD0");
@@ -215,7 +318,7 @@ static struct platform_device smdkv210_lcd_lte480wv = {
 	.dev.parent		= &s3c_device_fb.dev,
 	.dev.platform_data	= &smdkv210_lcd_lte480wv_data,
 };
-
+#if 0
 static struct s3c_fb_pd_win smdkv210_fb_win0 = {
 	.max_bpp	= 32,
 	.default_bpp	= 24,
@@ -240,6 +343,205 @@ static struct s3c_fb_platdata smdkv210_lcd0_pdata __initdata = {
 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
 	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
 	.setup_gpio	= s5pv210_fb_gpio_setup_24bpp,
+};
+#endif
+
+static struct s3cfb_lcd lte480wv = {
+        .width = S5PV210_LCD_WIDTH,
+        .height = S5PV210_LCD_HEIGHT,
+        .bpp = 32,
+        .freq = 60,
+
+        .timing = {
+                .h_fp = 120,
+                .h_bp = 13,
+                .h_sw = 3,
+                .v_fp = 5,
+                .v_fpe = 1,
+                .v_bp = 7,
+                .v_bpe = 1,
+                .v_sw = 1,
+        },
+        .polarity = {
+                .rise_vclk = 0,
+                .inv_hsync = 1,
+                .inv_vsync = 1,
+                .inv_vden = 0,
+        },
+};
+
+static void lte480wv_cfg_gpio(struct platform_device *pdev)
+{
+        int i;
+	printk("lte480wv_cfg_gpio was called ..............\n");
+
+        for (i = 0; i < 8; i++) {
+                s3c_gpio_cfgpin(S5PV210_GPF0(i), S3C_GPIO_SFN(2));
+                s3c_gpio_setpull(S5PV210_GPF0(i), S3C_GPIO_PULL_NONE);
+        }
+
+        for (i = 0; i < 8; i++) {
+                s3c_gpio_cfgpin(S5PV210_GPF1(i), S3C_GPIO_SFN(2));
+                s3c_gpio_setpull(S5PV210_GPF1(i), S3C_GPIO_PULL_NONE);
+        }
+
+        for (i = 0; i < 8; i++) {
+                s3c_gpio_cfgpin(S5PV210_GPF2(i), S3C_GPIO_SFN(2));
+                s3c_gpio_setpull(S5PV210_GPF2(i), S3C_GPIO_PULL_NONE);
+        }
+        for (i = 0; i < 6; i++) {
+                s3c_gpio_cfgpin(S5PV210_GPF3(i), S3C_GPIO_SFN(2));
+                s3c_gpio_setpull(S5PV210_GPF3(i), S3C_GPIO_PULL_NONE);
+        }
+
+        /* mDNIe SEL: why we shall write 0x2 ? */
+        writel(0x2, S5P_MDNIE_SEL);
+
+#ifndef CONFIG_FB_S3C_TL2796
+        /* drive strength to max */
+        writel(0xffffffff, S5PV210_GPF0_BASE + 0xc);
+        writel(0xffffffff, S5PV210_GPF1_BASE + 0xc);
+        writel(0xffffffff, S5PV210_GPF2_BASE + 0xc);
+        writel(0x000000ff, S5PV210_GPF3_BASE + 0xc);
+#else
+        writel(0xC0, S5PV210_GPF0_BASE + 0xc);
+#endif
+}
+
+
+
+#define S5PV210_GPD_0_0_TOUT_0  (0x2)
+#define S5PV210_GPD_0_1_TOUT_1  (0x2 << 4)
+#define S5PV210_GPD_0_2_TOUT_2  (0x2 << 8)
+#define S5PV210_GPD_0_3_TOUT_3  (0x2 << 12)
+static int lte480wv_backlight_on(struct platform_device *pdev)
+{
+        int err;
+	printk("lte480wv_backlight_on  was called ..............\n");
+#if defined (CONFIG_FB_S3C_TL2796)
+        err = gpio_request(S5PV210_GPB(4), "GPB");
+        if (err) {
+                printk(KERN_ERR "failed to request GPB(4) for "
+                "LVDS PWDN pin\n");
+                return err;
+        }
+        gpio_direction_output(S5PV210_GPB(4), 1);
+        gpio_set_value(S5PV210_GPB(4), 1);
+        gpio_free(S5PV210_GPB(4));
+        mdelay(100);
+#endif
+        err = gpio_request(S5PV210_GPD0(3), "GPD0");
+
+        if (err) {
+                printk(KERN_ERR "failed to request GPD0 for "
+                        "lcd backlight control\n");
+                return err;
+        }
+
+        gpio_direction_output(S5PV210_GPD0(3), 1);
+
+        s3c_gpio_cfgpin(S5PV210_GPD0(3), S5PV210_GPD_0_3_TOUT_3);
+
+        gpio_free(S5PV210_GPD0(3));
+
+#if defined (CONFIG_FB_S3C_TL2796)
+        err = gpio_request(S5PV210_GPB(5), "GPB");
+        if (err) {
+                printk(KERN_ERR "failed to request GPB(5) for "
+                "LED_EN pin\n");
+                return err;
+        }
+        gpio_direction_output(S5PV210_GPB(5), 1);
+        gpio_set_value(S5PV210_GPB(5), 1);
+        gpio_free(S5PV210_GPB(5));
+#endif
+        return 0;
+}
+
+
+static int lte480wv_backlight_off(struct platform_device *pdev, int onoff)
+{
+        int err;
+
+#if defined (CONFIG_FB_S3C_TL2796)
+        err = gpio_request(S5PV210_GPB(5), "GPB");
+        if (err) {
+                printk(KERN_ERR "failed to request GPB(5) for "
+                "LED_EN pin\n");
+                return err;
+        }
+        gpio_direction_output(S5PV210_GPB(5), 0);
+        gpio_set_value(S5PV210_GPB(5), 0);
+        gpio_free(S5PV210_GPB(5));
+#endif
+
+        err = gpio_request(S5PV210_GPD0(3), "GPD0");
+
+        if (err) {
+                printk(KERN_ERR "failed to request GPD0 for "
+                                "lcd backlight control\n");
+                return err;
+        }
+
+        gpio_direction_output(S5PV210_GPD0(3), 0);
+        gpio_free(S5PV210_GPD0(3));
+
+#if defined (CONFIG_FB_S3C_TL2796)
+        err = gpio_request(S5PV210_GPB(4), "GPB");
+        if (err) {
+                printk(KERN_ERR "failed to request GPB(4) for "
+                "LVDS PWDN pin\n");
+                return err;
+        }
+        gpio_direction_output(S5PV210_GPB(4), 0);
+        gpio_set_value(S5PV210_GPB(4), 0);
+        gpio_free(S5PV210_GPB(4));
+#endif
+        return 0;
+}
+
+
+static int lte480wv_reset_lcd(struct platform_device *pdev)
+{
+
+	printk("lte480wv_reset_lcd was called.................\n");
+#ifndef CONFIG_FB_S3C_TL2796
+        int err;
+
+        err = gpio_request(S5PV210_GPH0(6), "GPH0");
+        if (err) {
+                printk(KERN_ERR "failed to request GPH0 for "
+                                "lcd reset control\n");
+                return err;
+        }
+
+        gpio_direction_output(S5PV210_GPH0(6), 1);
+        mdelay(100);
+
+        gpio_set_value(S5PV210_GPH0(6), 0);
+        mdelay(10);
+
+        gpio_set_value(S5PV210_GPH0(6), 1);
+        mdelay(10);
+
+        gpio_free(S5PV210_GPH0(6));
+#endif
+        return 0;
+}
+
+
+static struct s3c_platform_fb lte480wv_fb_data __initdata = {
+        .hw_ver = 0x62,
+        .clk_name       = "sclk_fimd",
+        .nr_wins = 5,
+        .default_win = CONFIG_FB_S3C_DEFAULT_WINDOW,
+        .swap = FB_SWAP_WORD | FB_SWAP_HWORD,
+
+        .lcd = &lte480wv,
+        .cfg_gpio       = lte480wv_cfg_gpio,
+        .backlight_on   = lte480wv_backlight_on,
+        .backlight_onoff    = lte480wv_backlight_off,
+        .reset_lcd      = lte480wv_reset_lcd,
 };
 
 /* USB OTG */
@@ -279,7 +581,20 @@ static struct platform_device *smdkv210_devices[] __initdata = {
 #ifdef CONFIG_SMSC911X
 	&s5pv210_device_smsc911x,
 #endif
-	&smdkv210_lcd_lte480wv,
+//	&smdkv210_lcd_lte480wv,
+#ifdef CONFIG_VIDEO_FIMC
+        &s3c_device_fimc0,
+        &s3c_device_fimc1,
+        &s3c_device_fimc2,
+#endif
+#ifdef CONFIG_S5PV210_POWER_DOMAIN
+        &s5pv210_pd_audio,
+        //&s5pv210_pd_cam,
+        &s5pv210_pd_tv,
+        &s5pv210_pd_lcd,
+        &s5pv210_pd_g3d,
+        &s5pv210_pd_mfc,
+#endif
 };
 
 static void __init smdkv210_dm9000_init(void)
@@ -329,11 +644,14 @@ static void __init smdkv210_map_io(void)
 	s3c24xx_init_clocks(clk_xusbxti.rate);
 	s3c24xx_init_uarts(smdkv210_uartcfgs, ARRAY_SIZE(smdkv210_uartcfgs));
 	samsung_set_timer_source(SAMSUNG_PWM2, SAMSUNG_PWM4);
+        /* hcj: change from S5P_RANGE_MFC to 0 */
+        s5p_reserve_bootmem(s5pv210_media_devs,
+                        ARRAY_SIZE(s5pv210_media_devs), 0);
 }
 
 static void __init smdkv210_reserve(void)
 {
-	s5p_mfc_reserve_mem(0x43000000, 8 << 20, 0x51000000, 8 << 20);
+	//s5p_mfc_reserve_mem(0x43000000, 8 << 20, 0x51000000, 8 << 20);
 }
 
 static void __init smdkv210_machine_init(void)
@@ -359,7 +677,8 @@ static void __init smdkv210_machine_init(void)
 
 	s3c_ide_set_platdata(&smdkv210_ide_pdata);
 
-	s3c_fb_set_platdata(&smdkv210_lcd0_pdata);
+//	s3c_fb_set_platdata(&smdkv210_lcd0_pdata);
+	s3c_fb_set_platdata(&lte480wv_fb_data);
 
 	samsung_bl_set(&smdkv210_bl_gpio_info, &smdkv210_bl_data);
 

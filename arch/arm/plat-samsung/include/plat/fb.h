@@ -17,13 +17,50 @@
 
 #include <linux/platform_data/video_s3c.h>
 
+#define FB_SWAP_WORD    (1 << 24) 
+#define FB_SWAP_HWORD   (1 << 16) 
+#define FB_SWAP_BYTE    (1 << 8)
+#define FB_SWAP_BIT     (1 << 0)
+
+struct platform_device;
+struct clk;
+
+struct s3c_platform_fb {
+        int             hw_ver;
+        char            clk_name[16];
+        int             nr_wins;
+        int             nr_buffers[5];
+        int             default_win;
+        int             swap;
+        phys_addr_t     pmem_start[5]; /* starting physical address of memory region */
+        size_t          pmem_size[5]; /* size of memory region */
+        void            *lcd;
+        void            (*cfg_gpio)(struct platform_device *dev);
+        int             (*backlight_on)(struct platform_device *dev);
+        int             (*backlight_onoff)(struct platform_device *dev, int onoff);
+        int             (*reset_lcd)(struct platform_device *dev);
+        int             (*clk_on)(struct platform_device *pdev, struct clk **s3cfb_clk);
+        int             (*clk_off)(struct platform_device *pdev, struct clk **clk);
+};
+
+
+/* defined by architecture to configure gpio */
+extern void s3cfb_cfg_gpio(struct platform_device *pdev);
+extern int s3cfb_backlight_on(struct platform_device *pdev);
+extern int s3cfb_backlight_onoff(struct platform_device *pdev, int onoff);
+extern int s3cfb_reset_lcd(struct platform_device *pdev);
+extern int s3cfb_clk_on(struct platform_device *pdev, struct clk **s3cfb_clk);
+extern int s3cfb_clk_off(struct platform_device *pdev, struct clk **clk);
+extern void s3cfb_get_clk_name(char *clk_name);
+
+
 /**
  * s3c_fb_set_platdata() - Setup the FB device with platform data.
  * @pd: The platform data to set. The data is copied from the passed structure
  *      so the machine data can mark the data __initdata so that any unused
  *      machines will end up dumping their data at runtime.
  */
-extern void s3c_fb_set_platdata(struct s3c_fb_platdata *pd);
+extern void s3c_fb_set_platdata(struct s3c_platform_fb *pffb);
 
 /**
  * s5p_fimd0_set_platdata() - Setup the FB device with platform data.

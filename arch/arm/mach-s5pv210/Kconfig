@@ -60,6 +60,13 @@ config S5PV210_SETUP_FIMC
 	help
 	  Common setup code for the camera interfaces.
 
+config S5PV210_POWER_DOMAIN
+        bool
+        depends on REGULATOR
+        default y
+        help
+          Enable S5PV210 power domain support.
+
 config S5PV210_SETUP_SPI
 	bool
 	help
@@ -140,6 +147,12 @@ config MACH_SMDKC110
 endmenu
 
 menu "S5PV210 Machines"
+config S5PV210_SETUP_FB
+        bool
+        depends on FB_S3C
+        default y
+        help
+          Common setup code for FIMD controller.
 
 config MACH_SMDKV210
 	bool "SMDKV210"
