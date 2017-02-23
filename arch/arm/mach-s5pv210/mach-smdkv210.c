@@ -373,7 +373,6 @@ static struct s3cfb_lcd lte480wv = {
 static void lte480wv_cfg_gpio(struct platform_device *pdev)
 {
         int i;
-	printk("lte480wv_cfg_gpio was called ..............\n");
 
         for (i = 0; i < 8; i++) {
                 s3c_gpio_cfgpin(S5PV210_GPF0(i), S3C_GPIO_SFN(2));
@@ -417,7 +416,6 @@ static void lte480wv_cfg_gpio(struct platform_device *pdev)
 static int lte480wv_backlight_on(struct platform_device *pdev)
 {
         int err;
-	printk("lte480wv_backlight_on  was called ..............\n");
 #if defined (CONFIG_FB_S3C_TL2796)
         err = gpio_request(S5PV210_GPB(4), "GPB");
         if (err) {

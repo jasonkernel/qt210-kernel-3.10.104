@@ -362,7 +362,6 @@ XFER_ERROR:
 NO_ACTION:
 	if(ts->use_irq)
 	{
-	        printk(KERN_CRIT "&&&&&&& enable irq ***********.\n");
 		enable_irq(ts->client->irq);
 	}
 }
@@ -398,7 +397,7 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 {
 	struct goodix_ts_data *ts = dev_id;
 	//hcj: for debug
-	printk(KERN_CRIT "&&&&&&& interrupt for guitar arrived.\n");
+	//printk(KERN_CRIT "&&&&&&& interrupt for guitar arrived.\n");
 	disable_irq_nosync(ts->client->irq);
 	queue_work(goodix_wq, &ts->work);
 	
