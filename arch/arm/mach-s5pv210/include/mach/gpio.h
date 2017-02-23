@@ -13,6 +13,9 @@
 #ifndef __ASM_ARCH_GPIO_H
 #define __ASM_ARCH_GPIO_H __FILE__
 
+#define S5P_EXT_INT0(x)		S5PV210_GPH0(x)
+#define S5P_EXT_INT1(x)		S5PV210_GPH1(x)
+
 /* Practically, GPIO banks up to MP03 are the configurable gpio banks */
 
 /* GPIO bank sizes */

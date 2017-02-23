@@ -888,4 +888,15 @@ config TOUCHSCREEN_TPS6507X
 	  To compile this driver as a module, choose M here: the
 	  module will be called tps6507x_ts.
 
+config TOUCHSCREEN_GOODIX
+        tristate "GOODIX based touchscreen"
+        depends on I2C 
+        help
+          It is a android driver to support Gooidx's touchscreen whose name
+          is guitar on s5pv210 platform. The touchscreen can support multi-touch
+          not more than two fingers.
+          Say Y here to enable the driver for the touchscreen on the 
+          S5V SMDK board.
+          If unsure, say N.To compile this driver as a module, choose M here:
+          the module will be called goodix_touch.ko.
 endif
