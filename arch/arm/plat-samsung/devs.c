@@ -70,6 +70,10 @@
 #include <plat/media.h>
 #include <mach/media.h>
 #include <plat/jpeg.h>
+#include <plat/gpio-cfg.h>
+#include <mach/gpio.h>
+
+
 
 static u64 samsung_device_dma_mask = DMA_BIT_MASK(32);
 
@@ -1891,6 +1895,15 @@ struct platform_device s3c_device_wdt = {
 #endif /* CONFIG_S3C_DEV_WDT */
 
 #ifdef CONFIG_S3C64XX_DEV_SPI0
+int s3c64xx_spi0_cfg_gpio(void)
+{
+        s3c_gpio_cfgpin(S5PV210_GPB(0), S3C_GPIO_SFN(2));
+        s3c_gpio_setpull(S5PV210_GPB(0), S3C_GPIO_PULL_UP);
+        s3c_gpio_cfgall_range(S5PV210_GPB(2), 2,
+                                S3C_GPIO_SFN(2), S3C_GPIO_PULL_UP);
+        return 0;
+}
+
 static struct resource s3c64xx_spi0_resource[] = {
 	[0] = DEFINE_RES_MEM(S3C_PA_SPI0, SZ_256),
 	[1] = DEFINE_RES_DMA(DMACH_SPI0_TX),
@@ -1899,7 +1912,7 @@ static struct resource s3c64xx_spi0_resource[] = {
 };
 
 struct platform_device s3c64xx_device_spi0 = {
-	.name		= "s3c6410-spi",
+	.name		= "s5pv210-spi",
 	.id		= 0,
 	.num_resources	= ARRAY_SIZE(s3c64xx_spi0_resource),
 	.resource	= s3c64xx_spi0_resource,
@@ -1932,6 +1945,14 @@ void __init s3c64xx_spi0_set_platdata(int (*cfg_gpio)(void), int src_clk_nr,
 #endif /* CONFIG_S3C64XX_DEV_SPI0 */
 
 #ifdef CONFIG_S3C64XX_DEV_SPI1
+int s3c64xx_spi1_cfg_gpio(void)
+{
+        s3c_gpio_cfgpin(S5PV210_GPB(4), S3C_GPIO_SFN(2));
+        s3c_gpio_setpull(S5PV210_GPB(4), S3C_GPIO_PULL_UP);
+        s3c_gpio_cfgall_range(S5PV210_GPB(6), 2,
+                                S3C_GPIO_SFN(2), S3C_GPIO_PULL_UP);
+        return 0;
+}
 static struct resource s3c64xx_spi1_resource[] = {
 	[0] = DEFINE_RES_MEM(S3C_PA_SPI1, SZ_256),
 	[1] = DEFINE_RES_DMA(DMACH_SPI1_TX),
@@ -1940,7 +1961,7 @@ static struct resource s3c64xx_spi1_resource[] = {
 };
 
 struct platform_device s3c64xx_device_spi1 = {
-	.name		= "s3c6410-spi",
+	.name		= "s5pv210-spi",
 	.id		= 1,
 	.num_resources	= ARRAY_SIZE(s3c64xx_spi1_resource),
 	.resource	= s3c64xx_spi1_resource,

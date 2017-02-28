@@ -57,6 +57,17 @@
 #include <plat/media.h>
 #include <mach/media.h>
 #include <mach/power-domain.h>
+//#ifdef CONFIG_S3C64XX_DEV_SPI
+#include <plat/s3c64xx-spi.h>
+#include <mach/spi-clocks.h>
+#include <linux/spi/spi.h>
+//#endif
+#include <linux/platform_data/spi-s3c64xx.h>
+
+extern void s3c64xx_spi0_set_platdata(int (*cfg_gpio)(void), int src_clk_nr,
+		                                                int num_cs);
+extern void s3c64xx_spi1_set_platdata(int (*cfg_gpio)(void), int src_clk_nr,
+		                                                int num_cs);
 
 #define S5PV210_LCD_WIDTH  800
 #define S5PV210_LCD_HEIGHT 480
@@ -284,7 +295,6 @@ static void smdkv210_lte480wv_set_power(struct plat_lcd_data *pd,
 					unsigned int power)
 {
 
-	printk("smdkv210_lte480wv_set_power was called ..............\n");
 	if (power) {
 #if !defined(CONFIG_BACKLIGHT_PWM)
 		gpio_request_one(S5PV210_GPD0(3), GPIOF_OUT_INIT_HIGH, "GPD0");
@@ -502,7 +512,6 @@ static int lte480wv_backlight_off(struct platform_device *pdev, int onoff)
 static int lte480wv_reset_lcd(struct platform_device *pdev)
 {
 
-	printk("lte480wv_reset_lcd was called.................\n");
 #ifndef CONFIG_FB_S3C_TL2796
         int err;
 
@@ -542,6 +551,48 @@ static struct s3c_platform_fb lte480wv_fb_data __initdata = {
         .reset_lcd      = lte480wv_reset_lcd,
 };
 
+
+#define SMDK_MMCSPI_CS 0
+static struct s3c64xx_spi_csinfo smdk_spi0_csi[] = {
+        [SMDK_MMCSPI_CS] = {
+                .line = S5PV210_GPB(1),
+                .set_level = gpio_set_value,
+                .fb_delay = 0x0,
+        },
+};
+
+static struct s3c64xx_spi_csinfo smdk_spi1_csi[] = {
+        [SMDK_MMCSPI_CS] = {
+                .line = S5PV210_GPB(5),
+                .set_level = gpio_set_value,
+                .fb_delay = 0x0,
+        },
+};
+
+static struct spi_board_info s3c_spi_devs[] __initdata = {
+        [0] = {
+                .modalias        = "spidev",    /* device node name */
+                .mode            = SPI_MODE_0,  /* CPOL=0, CPHA=0 */
+                .max_speed_hz    = 10000000,
+                /* Connected to SPI-0 as 1st Slave */
+                .bus_num         = 0,
+                .irq             = IRQ_SPI0,
+                .chip_select     = 0,
+                .controller_data = &smdk_spi0_csi[SMDK_MMCSPI_CS],
+        },
+        [1] = {
+                .modalias        = "oled",    /* device node name */
+                .mode            = SPI_MODE_0,  /* CPOL=0, CPHA=0 */
+                .max_speed_hz    = 10000000,
+                /* Connected to SPI-1 as 1st Slave */
+                .bus_num         = 1,
+                .irq             = IRQ_SPI1,
+                .chip_select     = 0,
+                .controller_data = &smdk_spi1_csi[SMDK_MMCSPI_CS],
+		.platform_data   = S5PV210_GPH0(6),
+        },
+};
+
 /* USB OTG */
 static struct s3c_hsotg_plat smdkv210_hsotg_pdata;
 
@@ -573,6 +624,8 @@ static struct platform_device *smdkv210_devices[] __initdata = {
 	&s5pv210_device_spdif,
 	&samsung_asoc_idma,
 	&samsung_device_keypad,
+	&s3c64xx_device_spi0,
+	&s3c64xx_device_spi1,
 #ifdef CONFIG_DM9000
 	&smdkv210_dm9000,
 #endif
@@ -688,7 +741,13 @@ static void __init smdkv210_machine_init(void)
 
 	s3c_hsotg_set_platdata(&smdkv210_hsotg_pdata);
 
+        gpio_direction_output(S5PV210_GPH0(6), 1);
+        s3c_gpio_setpull(S5PV210_GPH0(6), S3C_GPIO_PULL_UP);
+        s3c64xx_spi0_set_platdata(NULL, 1, 0xffff);
+        s3c64xx_spi1_set_platdata(NULL, 1, 0xffff);
 	platform_add_devices(smdkv210_devices, ARRAY_SIZE(smdkv210_devices));
+        spi_register_board_info(s3c_spi_devs, ARRAY_SIZE(s3c_spi_devs));
+
 }
 
 MACHINE_START(SMDKV210, "SMDKV210")

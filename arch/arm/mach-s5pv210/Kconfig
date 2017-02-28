@@ -185,6 +185,8 @@ config MACH_SMDKV210
 	select SAMSUNG_DEV_KEYPAD
 	select SAMSUNG_DEV_PWM
 	select SAMSUNG_DEV_TS
+        select S3C64XX_DEV_SPI0
+        select S3C64XX_DEV_SPI1
 	help
 	  Machine support for Samsung SMDKV210
 
