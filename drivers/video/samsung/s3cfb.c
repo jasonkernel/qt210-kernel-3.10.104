@@ -175,8 +175,8 @@ static int s3cfb_map_video_memory(struct fb_info *fb)
 	if (!fb->screen_base)
 		return -ENOMEM;
 
-	printk("*******************[fb%d] dma: 0x%08x, cpu: 0x%08x, "
-			 "size: 0x%08x\n****************", win->id,
+	printk("[fb%d] dma: 0x%08x, cpu: 0x%08x, "
+			 "size: 0x%08x\n", win->id,
 			 (unsigned int)fix->smem_start,
 			 (unsigned int)fb->screen_base, fix->smem_len);
 
@@ -392,8 +392,6 @@ static int s3cfb_set_par(struct fb_info *fb)
 		platform_get_drvdata(to_platform_device(fb->device));
 	struct s3c_platform_fb *pdata = to_fb_plat(fbdev->dev);
 	struct s3cfb_window *win = fb->par;
-
-	dev_err(fbdev->dev, "[fb%d] set_par......................\n", win->id);
 
 	/* modify the fix info */
 	if (win->id != pdata->default_win) {
@@ -782,7 +780,6 @@ static int s3cfb_alloc_framebuffer(struct s3cfb_global *ctrl)
 {
 	struct s3c_platform_fb *pdata = to_fb_plat(ctrl->dev);
 	int ret, i;
-	pr_err("s3cfb_alloc_framebuffer is called...............\n");
 
 	ctrl->fb = kmalloc(pdata->nr_wins *
 			sizeof(*(ctrl->fb)), GFP_KERNEL);
@@ -834,7 +831,6 @@ static int s3cfb_register_framebuffer(struct s3cfb_global *ctrl)
 {
 	struct s3c_platform_fb *pdata = to_fb_plat(ctrl->dev);
 	int ret, i, j;
-	pr_err("s3cfb_register_framebuffer is called...............\n");
 
 	for (i = pdata->default_win;
 		i < pdata->nr_wins + pdata->default_win; i++) {

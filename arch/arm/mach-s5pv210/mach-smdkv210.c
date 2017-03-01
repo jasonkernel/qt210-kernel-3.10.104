@@ -19,6 +19,7 @@
 #include <linux/fb.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
+#include <linux/clk.h>
 #include <linux/pwm_backlight.h>
 #include <linux/platform_data/s3c-hsotg.h>
 
@@ -63,6 +64,9 @@
 #include <linux/spi/spi.h>
 //#endif
 #include <linux/platform_data/spi-s3c64xx.h>
+#include <linux/platform_data/usb-ehci-s5p.h>
+#include <plat/regs-otg.h>
+#include <uapi/linux/usb/ch9.h>
 
 extern void s3c64xx_spi0_set_platdata(int (*cfg_gpio)(void), int src_clk_nr,
 		                                                int num_cs);
@@ -593,8 +597,19 @@ static struct spi_board_info s3c_spi_devs[] __initdata = {
         },
 };
 
+
+/* USB EHCI */
+static struct s5p_ehci_platdata smdkv210_ehci_pdata;
+
+static void __init smdkv210_ehci_init(void)
+{
+        struct s5p_ehci_platdata *pdata = &smdkv210_ehci_pdata;
+
+        s5p_ehci_set_platdata(pdata);
+}
 /* USB OTG */
 static struct s3c_hsotg_plat smdkv210_hsotg_pdata;
+
 
 static struct platform_device *smdkv210_devices[] __initdata = {
 	&s3c_device_adc,
@@ -626,6 +641,7 @@ static struct platform_device *smdkv210_devices[] __initdata = {
 	&samsung_device_keypad,
 	&s3c64xx_device_spi0,
 	&s3c64xx_device_spi1,
+	&s5p_device_ehci,
 #ifdef CONFIG_DM9000
 	&smdkv210_dm9000,
 #endif
@@ -739,6 +755,7 @@ static void __init smdkv210_machine_init(void)
 
 	samsung_bl_set(&smdkv210_bl_gpio_info, &smdkv210_bl_data);
 
+	smdkv210_ehci_init();
 	s3c_hsotg_set_platdata(&smdkv210_hsotg_pdata);
 
         gpio_direction_output(S5PV210_GPH0(6), 1);

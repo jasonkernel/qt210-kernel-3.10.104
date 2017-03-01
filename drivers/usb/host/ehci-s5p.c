@@ -42,6 +42,8 @@
 
 static const char hcd_name[] = "ehci-s5p";
 static struct hc_driver __read_mostly s5p_ehci_hc_driver;
+extern void usb_host_phy_init(void);
+extern void usb_host_phy_off(void);
 
 struct s5p_ehci_hcd {
 	struct clk *clk;
@@ -114,12 +116,10 @@ static int s5p_ehci_probe(struct platform_device *pdev)
 	} else {
 		s5p_ehci->phy = phy;
 		s5p_ehci->otg = phy->otg;
-	}
-
-	s5p_ehci->clk = devm_clk_get(&pdev->dev, "usbhost");
+	} s5p_ehci->clk = devm_clk_get(&pdev->dev, "usb-host");
 
 	if (IS_ERR(s5p_ehci->clk)) {
-		dev_err(&pdev->dev, "Failed to get usbhost clock\n");
+		dev_err(&pdev->dev, "Failed to get usb-host clock\n");
 		err = PTR_ERR(s5p_ehci->clk);
 		goto fail_clk;
 	}

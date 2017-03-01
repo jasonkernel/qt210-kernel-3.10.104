@@ -114,7 +114,6 @@ int s3cfb_display_on(struct s3cfb_global *ctrl)
 {
 	u32 cfg;
 
-	printk("s3cfb_display_on was called ...................\n");
 
 	cfg = readl(ctrl->regs + S3C_VIDCON0);
 	cfg |= (S3C_VIDCON0_ENVID_ENABLE | S3C_VIDCON0_ENVID_F_ENABLE);
@@ -180,7 +179,6 @@ int s3cfb_set_clock(struct s3cfb_global *ctrl)
 	}
 
 	vclk = ctrl->fb[pdata->default_win]->var.pixclock;
-        printk("s3cfb_set_clock *************** vclk:%d\n", vclk);
 
 	if (vclk > maxclk) {
 		dev_info(ctrl->dev, "vclk(%d) should be smaller than %d\n",

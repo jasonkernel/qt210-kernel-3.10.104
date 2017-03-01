@@ -42,5 +42,7 @@
  * modify the space for mapping.
  */
 #define S3C_ADDR_CPU(x)	S3C_ADDR(0x00500000 + (x))
+#define S3C_VA_OTG      S3C_ADDR(0x00E00000)    /* OTG */
+#define S3C_VA_OTGSFR	S3C_ADDR(0x00F00000)	/* OTG PHY */
 
 #endif /* __ASM_PLAT_MAP_H */

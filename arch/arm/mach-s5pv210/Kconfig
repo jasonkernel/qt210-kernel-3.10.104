@@ -187,6 +187,7 @@ config MACH_SMDKV210
 	select SAMSUNG_DEV_TS
         select S3C64XX_DEV_SPI0
         select S3C64XX_DEV_SPI1
+        select S5P_DEV_USB_EHCI
 	help
 	  Machine support for Samsung SMDKV210
 
